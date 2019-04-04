@@ -38,7 +38,6 @@ shape = SubResource( 1 )
 [node name="tween" type="Tween" parent="."]
 
 [node name="anim" type="AnimationPlayer" parent="."]
-autoplay = "idle"
 anims/idle = SubResource( 2 )
 
 [connection signal="tween_completed" from="tween" to="." method="_on_tween_tween_completed"]
