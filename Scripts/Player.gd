@@ -1,11 +1,13 @@
 extends KinematicBody2D
-class_name UnitController
+class_name Unit
+
+onready var map: TileMap = get_tree().get_root().get_node("/root/World/Map")
 
 # MOVING VARIABLES
 var movement: Vector2
 var tile_size: int
 var is_moving: bool = false
-export var animation_speed: float = 1
+export var animation_speed: float = .5
 
 # GAME VARIABLES
 var attack: int = 1
@@ -17,47 +19,45 @@ var movements_left: int
 
 # FSM VARIABLES
 var state: int
-enum {IDLE, MOVING, SLEEPING, SELECTED}
+enum unit_state {STOPPED, PLAYING, WAITING, MOVING}
+
+# ENVIRONMENT VARIABLES
+var terrain: int
+enum {WATER, GROUND}
 
 # Base the tile_size on the size of the texture used * sprite scale.
 func _ready() -> void:
 	tile_size = ($sprite as Sprite).texture.get_width() * ($sprite as Sprite).scale.x
-	state = SLEEPING
-
-# PRESS SPACE TO ACTIVATE THE UNIT
-func _process(delta: float) -> void:
-	if Input.is_action_just_pressed("ui_accept"):
-		movements_left = total_movements
-		is_selected = true
+#	state = unit_state.WAITING
+	movements_left = total_movements
+	state_loop()
 
 # Stops the inputs if the unit didn't finish its movement.
 func _physics_process(delta: float) -> void:
-	if is_selected:
+	if state == unit_state.PLAYING && !is_moving:
 		movement_loop()
 	state_loop()
 
 func state_loop():
-	if state == IDLE && movement != Vector2():
-		change_state(MOVING)
-	if state == MOVING && movement == Vector2():
-		change_state(IDLE)
-	if state == MOVING && movements_left <= 1:
-		change_state(SLEEPING)
-	if state == SLEEPING && is_selected:
-		change_state(IDLE)
+	if state == unit_state.PLAYING && movement == Vector2.ZERO:
+		change_state(unit_state.PLAYING)
+	if state == unit_state.PLAYING && movement != Vector2():
+		change_state(unit_state.MOVING)
+	if state == unit_state.MOVING && movement == Vector2():
+		change_state(unit_state.PLAYING)
+	if state == unit_state.MOVING && movements_left == 0:
+		change_state(unit_state.STOPPED)
 
 func change_state(new_state: int) -> void:
 	state = new_state
 	match state:
-		IDLE:
+		unit_state.PLAYING:
 			($anim as AnimationPlayer).play("idle")
-		MOVING:
+		unit_state.MOVING:
 			($tween as Tween).interpolate_property(self, "position", position, position + movement * tile_size, animation_speed, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 			($tween as Tween).start()
-		SLEEPING:
+		unit_state.STOPPED:
 			($anim as AnimationPlayer).stop()
-			is_selected = false
-			print("animation stopped ! Go to unit having (turn_id +1) !")
 
 # unit not moving, get movement to execute tween with "animation_speed"(export) speed.
 func movement_loop() -> void:
@@ -79,14 +79,17 @@ func movement_loop() -> void:
 		movement = Vector2(-1, -1)
 	else:
 		movement = Vector2()
+	
+	check_tile(movement)
 
-#func create_unit(atk: int, def: int, moves: int):
-#	attack = atk
-#	defense = def
-#	total_movements = moves
+func check_tile(direction: Vector2) -> void:
+	var ground_cells: Array = map.get_used_cells_by_id(GROUND)
+	var player_pos: Vector2 = map.world_to_map(position)
+	if !ground_cells.has(player_pos + direction):
+		movement = Vector2()
 
 # Unit moving, stop flickering animation and inputs.
-func _on_tween_tween_started(object, key):
+func _on_tween_tween_started(object: Object, key: NodePath) -> void:
 	($sprite as Sprite).visible = true
 	($anim as AnimationPlayer).stop()
 	is_moving = true
@@ -95,3 +98,4 @@ func _on_tween_tween_started(object, key):
 # Unit finished moving : inputs are free and flickering animation restarts.
 func _on_tween_tween_completed(object: Object, key: NodePath) -> void:
 	is_moving = false
+	movement = Vector2.ZERO
