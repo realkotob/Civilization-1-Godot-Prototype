@@ -12,8 +12,19 @@ enum {WATER, GROUND}
 var current_civ: Node
 # Currently playing unit
 var current_unit: Node
+# Civilization Dictionary
+var civilizations: Dictionary = {"France" : {"color" : Color(0.148788, 0.556367, 0.777344)},
+	"Aztec" : {"color" : Color(0.188235, 0.729412, 0.309804)},
+	"America" : {"color" : Color(0.776471, 0.396078, 0.592157)},
+	"Japan" : {"color" : Color(1,1,1)},
+	"Egypt" : {"color" : Color(0.807843, 0.745098, 0.078431)},
+	"Somalia" : {"color" : Color(0.721569, 0.12549, 0.686275)},
+	"Peru" : {"color" : Color(0.679688, 0.244263, 0.244263)}
+}
 
 func _ready() -> void:
+	if civ_num > len(civilizations.keys()):
+		civ_num = len(civilizations.keys())
 	randomize()
 	init_civilizations(civ_num)
 	init_units()
@@ -22,9 +33,12 @@ func _ready() -> void:
 # For each civilization, initialize their nodes
 # Civ01 / Cities / Units in which every building and units are going to be added
 func init_civilizations(number_of_civs: int) -> void:
+	var possible_civs: Array = civilizations.keys()
 	for i in number_of_civs:
 		var civ_node: Node = Node.new()
-		civ_node.name = "Civ" + str(i)
+		var choosen_civ: int = randi() % len(possible_civs)
+		civ_node.name = possible_civs[choosen_civ]
+		possible_civs.remove(choosen_civ)
 		add_child(civ_node)
 		civs.append(civ_node)
 		
@@ -43,6 +57,8 @@ func init_units() -> void:
 	for civ in civs:
 		var new_unit: Node = unit.instance()
 		var ground_cells: Array = ($Map as TileMap).get_used_cells_by_id(GROUND)
+		var values: Dictionary = civilizations.get(civ.name)
+		new_unit.modulate = values["color"]
 		new_unit.position = ($Map as TileMap).map_to_world(ground_cells[randi() % len(ground_cells)]) + Vector2(16, 16)
 		civ.get_node("Units").add_child(new_unit)
 
