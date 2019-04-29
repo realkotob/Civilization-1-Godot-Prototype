@@ -8,6 +8,8 @@ export (int) var civ_num: int
 var civs: Array
 # Cells in the tileset used in $Map:  0 = Water / 1 = Ground
 enum {WATER, GROUND}
+# Index to change civilization !
+var index: int = 0
 # Currently playing civilization
 var current_civ: Node
 # Currently playing unit
@@ -63,8 +65,25 @@ func init_units() -> void:
 		civ.get_node("Units").add_child(new_unit)
 
 func start_turn() -> void:
+	index = 0
+	current_civ = civs[index]
 	# Passer toutes les unités du jeu en "waiting"
 	for node in get_tree().get_nodes_in_group("units"):
 		for unit in node.get_children():
 			unit.state = unit.unit_state.WAITING
-	current_civ = civs[0]
+
+	get_next_unit(current_civ)
+
+func get_next_unit(civ: Node) -> void:
+	print(civ.name)
+	for unit in current_civ.get_node("Units").get_children():
+		if unit.state == unit.unit_state.WAITING:
+			unit.state = unit.unit_state.PLAYING
+			return
+	if index + 1 < len(civs):
+		index += 1
+		current_civ = civs[index]
+		get_next_unit(current_civ)
+	else:
+		print("Toutes les civilisations ont jouées ! Le jeu est déjà terminé!")
+		return
