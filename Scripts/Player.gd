@@ -40,11 +40,9 @@ func _physics_process(delta: float) -> void:
 	state_loop()
 
 func state_loop():
-	if state == unit_state.PLAYING && movement == Vector2.ZERO:
-		change_state(unit_state.PLAYING)
-	if state == unit_state.PLAYING && movement != Vector2():
+	if state == unit_state.PLAYING && movement != Vector2.ZERO:
 		change_state(unit_state.MOVING)
-	if state == unit_state.MOVING && movement == Vector2():
+	if state in [unit_state.PLAYING, unit_state.MOVING] && movement == Vector2.ZERO:
 		change_state(unit_state.PLAYING)
 	if state == unit_state.MOVING && movements_left == 0:
 		change_state(unit_state.STOPPED)

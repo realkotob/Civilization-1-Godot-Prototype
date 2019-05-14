@@ -1,6 +1,6 @@
 extends Node
 
-var unit: PackedScene = preload("res://Scenes/Player.tscn")
+var unit: PackedScene = preload("res://Scenes/Unit.tscn")
 
 # Number of civilization in the game
 export (int) var civ_num: int
@@ -25,15 +25,17 @@ var civilizations: Dictionary = {"France" : {"color" : Color(0.148788, 0.556367,
 }
 
 func _ready() -> void:
+	# Checking if there's enough civilization colors, if not : reduce the number to civilization.size()
 	if civ_num > len(civilizations.keys()):
 		civ_num = len(civilizations.keys())
 	randomize()
 	init_civilizations(civ_num)
-	init_units()
 	start_turn()
 
 # For each civilization, initialize their nodes
 # Civ01 / Cities / Units in which every building and units are going to be added
+# Initialize each civilization with a single unit (settler) for it to build a city.
+# Place the units randomly on the map, at correct coordinates so its in the center of a tile.
 func init_civilizations(number_of_civs: int) -> void:
 	var possible_civs: Array = civilizations.keys()
 	for i in number_of_civs:
@@ -52,10 +54,7 @@ func init_civilizations(number_of_civs: int) -> void:
 		civ_units.name = "Units"
 		civ_units.add_to_group("units")
 		civ_node.add_child(civ_units)
-
-# Initialize each civilization with a single unit (settler) for it to build a city.
-# Place the units randomly on the map, at correct coordinates so its in the center of a tile.
-func init_units() -> void:
+	
 	for civ in civs:
 		var new_unit: Node = unit.instance()
 		var ground_cells: Array = ($Map as TileMap).get_used_cells_by_id(GROUND)
@@ -67,15 +66,12 @@ func init_units() -> void:
 func start_turn() -> void:
 	index = 0
 	current_civ = civs[index]
-	# Passer toutes les unités du jeu en "waiting"
 	for node in get_tree().get_nodes_in_group("units"):
 		for unit in node.get_children():
 			unit.state = unit.unit_state.WAITING
-
 	get_next_unit(current_civ)
 
 func get_next_unit(civ: Node) -> void:
-	print(civ.name)
 	for unit in current_civ.get_node("Units").get_children():
 		if unit.state == unit.unit_state.WAITING:
 			unit.state = unit.unit_state.PLAYING
@@ -85,5 +81,4 @@ func get_next_unit(civ: Node) -> void:
 		current_civ = civs[index]
 		get_next_unit(current_civ)
 	else:
-		print("Toutes les civilisations ont jouées ! Le jeu est déjà terminé!")
-		return
+		start_turn()
