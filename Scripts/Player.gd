@@ -16,6 +16,7 @@ var total_movements: int = 3
 var is_selected: bool = false
 var turn_id: int
 var movements_left: int
+signal change_unit
 
 # FSM VARIABLES
 var state: int
@@ -27,8 +28,8 @@ enum {WATER, GROUND}
 
 # Base the tile_size on the size of the texture used * sprite scale.
 func _ready() -> void:
+	connect("change_unit", get_tree().get_root().get_node("/root/World"), "get_next_unit", [get_parent().get_parent()])
 	tile_size = ($sprite as Sprite).texture.get_width() * ($sprite as Sprite).scale.x
-#	state = unit_state.WAITING
 	movements_left = total_movements
 	state_loop()
 
@@ -39,11 +40,9 @@ func _physics_process(delta: float) -> void:
 	state_loop()
 
 func state_loop():
-	if state == unit_state.PLAYING && movement == Vector2.ZERO:
-		change_state(unit_state.PLAYING)
-	if state == unit_state.PLAYING && movement != Vector2():
+	if state == unit_state.PLAYING && movement != Vector2.ZERO:
 		change_state(unit_state.MOVING)
-	if state == unit_state.MOVING && movement == Vector2():
+	if state in [unit_state.PLAYING, unit_state.MOVING] && movement == Vector2.ZERO:
 		change_state(unit_state.PLAYING)
 	if state == unit_state.MOVING && movements_left == 0:
 		change_state(unit_state.STOPPED)
@@ -58,6 +57,7 @@ func change_state(new_state: int) -> void:
 			($tween as Tween).start()
 		unit_state.STOPPED:
 			($anim as AnimationPlayer).stop()
+			emit_signal("change_unit")
 
 # unit not moving, get movement to execute tween with "animation_speed"(export) speed.
 func movement_loop() -> void:
